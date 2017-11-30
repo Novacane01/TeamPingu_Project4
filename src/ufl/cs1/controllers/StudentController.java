@@ -6,51 +6,99 @@ import game.models.Attacker;
 import game.models.Defender;
 import game.models.Game;
 import game.models.Maze;
-import game.system._Maze;
+import game.models.Node;
 
 import java.util.List;
 
 public final class StudentController implements DefenderController
 {
+	public static int followObject(List<Integer> directions,int ghostX,int ghostY, int objectX, int objectY,int xdis,int ydis){
+		if (objectX > ghostX && directions.contains(1) && (xdis >= ydis)) {
+			return 1;
+		}
+		if (objectX < ghostX && directions.contains(3) && (xdis >= ydis)) {
+			return 3;
+		}
+		if (objectY > ghostY && directions.contains(2)&& (xdis >= ydis)) {
+			return 2;
+		}
+		if (objectY < ghostY && directions.contains(0)&& (xdis >= ydis)) {
+			return 0;
+		}
+		if (objectY > ghostY && directions.contains(2)&& (ydis >= xdis)) {
+			return 2;
+		}
+		if (objectY < ghostY && directions.contains(0)&& (ydis >= xdis)) {
+			return 0;
+		}
+		if (objectX > ghostX && directions.contains(1) && (ydis >= xdis)) {
+			return 1;
+		}
+		if (objectX < ghostX && directions.contains(3) && (ydis >= xdis)) {
+			return 3;
+		}
+		return -1;
+	}
+	public static double distance(int x1, int x2, int y1, int y2){
+		return Math.sqrt(Math.pow((x2 - x1), 2) + Math.pow((y2 - y1), 2));
+	}
 	public enum isHungry{EATEN,NOTEATEN,NEARPILL};
-	static int pillCount = 4;
+	private static int pillCount = 4;
 	public void init(Game game) { }
 
 	public void shutdown(Game game) { }
 
+	//Continuously called to update game
 	public int[] update(Game game,long timeDue)
 	{
 		int[] actions = new int[Game.NUM_DEFENDER];
+
+		//Sets Pacman state to not eaten
 		isHungry ishungry = isHungry.NOTEATEN;
+
 		List<Defender> enemies = game.getDefenders();
-		//Chooses a random LEGAL action if required. Could be much simpler by simply returning
-		//any random number of all of the ghosts
 		Attacker pacman = game.getAttacker();
 		Maze maze = game.getCurMaze();
-		List Ppills= game.getPowerPillList();
-		double dist = 0;
+		List<Node> Ppills= maze.getPowerPillNodes();
+		double pacToPillDist = 0, ghostToGhostDist = 0;
 		int pacx = pacman.getLocation().getX();
 		int pacy = pacman.getLocation().getY();
+
+		//Location of all Power Pills
+		Node PP1 = Ppills.get(0), PP2 = Ppills.get(1), PP3 = Ppills.get(2), PP4 = Ppills.get(3);
+
+		//PowerPill Pacman is closest to
+		int PPnum=0;
+
+		//Behaviour for all ghosts
 		for(int i = 0; i<actions.length;i++) {
+			//Gets current ghost
 			Defender defender = enemies.get(i);
+
+			//List of possible ghost movement directions
 			List<Integer> possibleDirs = defender.getPossibleDirs();
+
+			//Gets current defender X and Y location
 			int ghostx = defender.getLocation().getX();
 			int ghosty = defender.getLocation().getY();
-			int xdistance = Math.abs(pacx - ghostx);
-			int ydistance = Math.abs(pacy - ghosty);
+
+			int pacDisX = Math.abs(pacx - ghostx);
+			int pacDisY = Math.abs(pacy - ghosty);
 			if (possibleDirs.size() != 0) {
-				//actions[i]=possibleDirs.get(Game.rng.nextInt(possibleDirs.size()));
-
 				//Gets distance between Pacman and Power Pills
-				for (int j = 0; j < Ppills.size(); j++) {
-					int Ppillx = maze.getPowerPillNodes().get(j).getX();
-					int Ppilly = maze.getPowerPillNodes().get(j).getY();
-					dist = Math.sqrt(Math.pow(Ppillx - pacx, 2) + Math.pow(Ppilly - pacy, 2));
-					if (dist < 5)
-						ishungry = isHungry.NEARPILL;
-					break;
+				for (int j = 0; j < 4; j++) {
+					int Ppillx = Ppills.get(j).getX();
+					int Ppilly = Ppills.get(j).getY();
+					if (game.checkPowerPill(Ppills.get(j))) {
+						pacToPillDist = distance(pacx, Ppillx, pacy, Ppilly);
+						if (pacToPillDist <= 32) {
+							//System.out.println("PACMAN IS APPROACHING A POWER PILL " + j);
+							ishungry = isHungry.NEARPILL;
+							PPnum = j;
+							break;
+						}
+					}
 				}
-
 				//Checks if a pill has been eaten
 				if (game.getPowerPillList().size() < pillCount) {
 					ishungry = isHungry.EATEN;
@@ -65,29 +113,141 @@ public final class StudentController implements DefenderController
 
 				//Behaviour for ghosts if pacman is near pill
 				if (ishungry == isHungry.NEARPILL) {
-					System.out.println("PACMAN IS APPROACHING A POWER PILL!");
-					actions[i] = defender.getNextDir(pacman.getLocation(), false);
+					actions[i] = followObject(possibleDirs, ghostx, ghosty, pacx, pacy, pacDisX, pacDisY);
+//					if (PPnum == 0) {
+//						actions[0] = followObject(possibleDirs, ghostx, ghosty, PP2.getX(), PP2.getY(), Math.abs(PP2.getY() - ghostx), Math.abs(PP2.getY() - ghosty));
+//					} else if (PPnum == 1) {
+//						actions[0] = followObject(possibleDirs, ghostx, ghosty, PP3.getX(), PP3.getY(), Math.abs(PP3.getY() - ghostx), Math.abs(PP3.getY() - ghosty));
+//					} else if (PPnum == 2) {
+//						actions[0] = followObject(possibleDirs, ghostx, ghosty, PP4.getX(), PP4.getY(), Math.abs(PP4.getY() - ghostx), Math.abs(PP4.getY() - ghosty));
+//					} else if (PPnum == 3) {
+//						actions[0] = followObject(possibleDirs, ghostx, ghosty, PP1.getX(), PP1.getY(), Math.abs(PP1.getY() - ghostx), Math.abs(PP1.getY() - ghosty));
+//					}
+//					for(int i1 = 0; i1<enemies.size();i1++){
+//						if(i1==i) {
+//							continue;
+//						}
+//						ghostToGhostDist = distance(ghostx,enemies.get(i1).getLocation().getX(),ghosty,enemies.get(i1).getLocation().getY());
+//						if(ghostToGhostDist>100){
+//							System.out.println("PACMAN IS APPROACHING A POWER PILL RETREAT!!!!!!");
+//							actions[i] = defender.getNextDir(pacman.getLocation(),false);
+//						}
+//						else{
+//							actions[i] = defender.getNextDir(pacman.getLocation(),true);
+//						}
+//					}
 				}
 
 				//Behaviour for ghosts if pacman has not eaten a pill
 				if (ishungry == isHungry.NOTEATEN) {
-					if (pacx > ghostx && possibleDirs.contains(1) && (xdistance > ydistance)) {
-						actions[i] = 1;
+					//Moves ghost 1 to pacmans location if he is nearby
+					if (distance(pacx, PP1.getX(), pacy, PP1.getY()) < 25||distance(pacx,PP3.getX(),pacy,PP3.getY())<25) {
+						//System.out.println("PACMAN IS COMING *BBBTZZZ* DEFEND LEFT QUADRANT");
+						if(i==0) {
+							actions[0] = followObject(possibleDirs, ghostx, ghosty, pacx, pacy, pacDisX, pacDisY);
+						}
+						else if(i==2) {
+							actions[2] = followObject(possibleDirs, ghostx, ghosty, pacx, pacy, pacDisX, pacDisY);
+						}
 					}
-					if (pacx < ghostx && possibleDirs.contains(3) && (xdistance > ydistance)) {
-						actions[i] = 3;
+					else {
+						//Moves ghost 1 and 3 to power pill nodes if pacman is not nearby
+						if (i == 0) {
+							System.out.println("GHOST 1 CONNECTION ESTABLISHED");
+							if(game.checkPowerPill(PP1)) {
+								actions[0] = followObject(possibleDirs, ghostx, ghosty, PP1.getX(), PP1.getY(), Math.abs(PP1.getY() - ghostx), Math.abs(PP1.getY() - ghosty));
+							}
+							else if(PPnum==0&&game.checkPowerPill(PP2)){
+								actions[0] = followObject(possibleDirs, ghostx, ghosty, PP2.getX(), PP2.getY(), Math.abs(PP2.getY() - ghostx), Math.abs(PP2.getY() - ghosty));
+							}
+							else if((PPnum==1||PPnum==2)&&game.checkPowerPill(PP4)){
+								actions[0] = followObject(possibleDirs, ghostx, ghosty, PP4.getX(), PP4.getY(), Math.abs(PP4.getY() - ghostx), Math.abs(PP4.getY() - ghosty));
+							}
+							else if(PPnum==3&&game.checkPowerPill(PP3)){
+								actions[0] = followObject(possibleDirs, ghostx, ghosty, PP3.getX(), PP3.getY(), Math.abs(PP3.getY() - ghostx), Math.abs(PP3.getY() - ghosty));
+							}
+							else{
+								actions[0] = followObject(possibleDirs, ghostx, ghosty, pacx, pacy, pacDisX, pacDisY);
+							}
+						}
+						//Moves ghost 2 to power pill nodes if pacman is not nearby
+						else if (i == 2) {
+							System.out.println("GHOST 3 CONNECTION ESTABLISHED");
+							if(game.checkPowerPill(PP3)) {
+								actions[2] = followObject(possibleDirs, ghostx, ghosty, PP3.getX(), PP3.getY(), Math.abs(PP3.getY() - ghostx), Math.abs(PP3.getY() - ghosty));
+							}
+							else if(PPnum==2&&game.checkPowerPill(PP4)){
+								actions[2] = followObject(possibleDirs, ghostx, ghosty, PP4.getX(), PP4.getY(), Math.abs(PP4.getY() - ghostx), Math.abs(PP4.getY() - ghosty));
+							}
+							else if(PPnum==1&&game.checkPowerPill(PP1)){
+								actions[2] = followObject(possibleDirs, ghostx, ghosty, PP1.getX(), PP1.getY(), Math.abs(PP1.getY() - ghostx), Math.abs(PP1.getY() - ghosty));
+							}
+							else if(PPnum==3&&game.checkPowerPill(PP2)){
+								actions[2] = followObject(possibleDirs, ghostx, ghosty, PP2.getX(), PP2.getY(), Math.abs(PP2.getY() - ghostx), Math.abs(PP2.getY() - ghosty));
+							}
+							else{
+								actions[2] = followObject(possibleDirs, ghostx, ghosty, pacx, pacy, pacDisX, pacDisY);
+							}
+						}
 					}
-					if (pacy > ghosty && possibleDirs.contains(2) && (ydistance > xdistance)) {
-						actions[i] = 2;
+					//Moves ghost 2 and 4 to pacmans location if he is nearby
+					if (distance(pacx, PP2.getX(), pacy, PP2.getY()) < 25||distance(pacx,PP4.getX(),pacy,PP4.getY())<25) {
+						System.out.println("PACMAN IS COMING *BBBTZZZ* DEFEND RIGHT QUADRANT");
+						if(i==1) {
+							actions[1] = followObject(possibleDirs, ghostx, ghosty, pacx, pacy, pacDisX, pacDisY);
+						}
+						else if(i==3) {
+							actions[3] = followObject(possibleDirs, ghostx, ghosty, pacx, pacy, pacDisX, pacDisY);
+						}
 					}
-					if (pacy < ghosty && possibleDirs.contains(0) && (ydistance > xdistance)) {
-						actions[i] = 0;
+					else {
+						//Moves ghost 2 to power pill nodes if pacman is not nearby
+						if (i == 1) {
+							System.out.println("GHOST 2 CONNECTION ESTABLISHED");
+							if(game.checkPowerPill(PP2)) {
+								actions[1] = followObject(possibleDirs, ghostx, ghosty, PP2.getX(), PP2.getY(), Math.abs(PP2.getY() - ghostx), Math.abs(PP2.getY() - ghosty));
+							}
+							else if(PPnum==2&&game.checkPowerPill(PP4)){
+								actions[1] = followObject(possibleDirs, ghostx, ghosty, PP4.getX(), PP4.getY(), Math.abs(PP4.getY() - ghostx), Math.abs(PP4.getY() - ghosty));
+							}
+							else if(PPnum==1&&game.checkPowerPill(PP1)){
+								actions[1] = followObject(possibleDirs, ghostx, ghosty, PP1.getX(), PP1.getY(), Math.abs(PP1.getY() - ghostx), Math.abs(PP1.getY() - ghosty));
+							}
+							else if(PPnum==3&&game.checkPowerPill(PP3)){
+								actions[1] = followObject(possibleDirs, ghostx, ghosty, PP3.getX(), PP3.getY(), Math.abs(PP3.getY() - ghostx), Math.abs(PP3.getY() - ghosty));
+							}
+							else{
+								actions[1] = followObject(possibleDirs, ghostx, ghosty, pacx, pacy, pacDisX, pacDisY);
+							}
+						}
+						//Moves ghost 4 to power pill nodes if pacman is not nearby
+						else if(i==3){
+							System.out.println("GHOST 4 CONNECTION ESTABLISHED");
+							if(game.checkPowerPill(PP4)) {
+								System.out.println("GHOST 4 MOVING TOWARDS PP4");
+								actions[3] = followObject(possibleDirs, ghostx, ghosty, PP4.getX(), PP4.getY(), Math.abs(PP4.getY() - ghostx), Math.abs(PP4.getY() - ghosty));
+							}
+							else if(PPnum==1&&game.checkPowerPill(PP3)){
+								actions[3] = followObject(possibleDirs, ghostx, ghosty, PP3.getX(), PP3.getY(), Math.abs(PP3.getY() - ghostx), Math.abs(PP3.getY() - ghosty));
+							}
+							else if(PPnum==2&&game.checkPowerPill(PP1)){
+								actions[3] = followObject(possibleDirs, ghostx, ghosty, PP1.getX(), PP1.getY(), Math.abs(PP1.getY() - ghostx), Math.abs(PP1.getY() - ghosty));
+							}
+							else if(PPnum==3&&game.checkPowerPill(PP2)){
+								actions[3] = followObject(possibleDirs, ghostx, ghosty, PP2.getX(), PP2.getY(), Math.abs(PP2.getY() - ghostx), Math.abs(PP2.getY() - ghosty));
+							}
+							else{
+								actions[3] = followObject(possibleDirs, ghostx, ghosty, pacx, pacy, pacDisX, pacDisY);
+							}
+						}
 					}
 				}
-			} else {
-				actions[0] = -1;
+			}
+			else {
+				actions[i] = -1;
 			}
 		}
+		//System.out.printf("Pacman's current location is X: %d Y: %d\n",pacx,pacy);
 		return actions;
 	}
 }
