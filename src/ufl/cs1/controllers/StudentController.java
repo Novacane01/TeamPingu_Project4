@@ -12,6 +12,8 @@ import java.util.List;
 
 public final class StudentController implements DefenderController
 {
+	//PowerPill Pacman is closest to
+	private static int PPnum=0;
 	public static int followObject(List<Integer> directions,int ghostX,int ghostY, int objectX, int objectY,int xdis,int ydis){
 		if (objectX > ghostX && directions.contains(1) && (xdis >= ydis)) {
 			return 1;
@@ -67,9 +69,6 @@ public final class StudentController implements DefenderController
 		//Location of all Power Pills
 		Node PP1 = Ppills.get(0), PP2 = Ppills.get(1), PP3 = Ppills.get(2), PP4 = Ppills.get(3);
 
-		//PowerPill Pacman is closest to
-		int PPnum=0;
-
 		//Behaviour for all ghosts
 		for(int i = 0; i<actions.length;i++) {
 			//Gets current ghost
@@ -91,7 +90,7 @@ public final class StudentController implements DefenderController
 					int Ppilly = Ppills.get(j).getY();
 					if (game.checkPowerPill(Ppills.get(j))) {
 						pacToPillDist = distance(pacx, Ppillx, pacy, Ppilly);
-						if (pacToPillDist <= 32) {
+						if (pacToPillDist <= 5) {
 							//System.out.println("PACMAN IS APPROACHING A POWER PILL " + j);
 							ishungry = isHungry.NEARPILL;
 							PPnum = j;
@@ -102,7 +101,7 @@ public final class StudentController implements DefenderController
 				//Checks if a pill has been eaten
 				if (game.getPowerPillList().size() < pillCount) {
 					ishungry = isHungry.EATEN;
-					System.out.println("Pill was eaten");
+					System.out.println("Pacman ate Power Pill #" +(PPnum+1));
 					pillCount--;
 				}
 
@@ -142,7 +141,6 @@ public final class StudentController implements DefenderController
 				if (ishungry == isHungry.NOTEATEN) {
 					//Moves ghost 1 to pacmans location if he is nearby
 					if (distance(pacx, PP1.getX(), pacy, PP1.getY()) < 25||distance(pacx,PP3.getX(),pacy,PP3.getY())<25) {
-						//System.out.println("PACMAN IS COMING *BBBTZZZ* DEFEND LEFT QUADRANT");
 						if(i==0) {
 							actions[0] = followObject(possibleDirs, ghostx, ghosty, pacx, pacy, pacDisX, pacDisY);
 						}
@@ -153,7 +151,6 @@ public final class StudentController implements DefenderController
 					else {
 						//Moves ghost 1 and 3 to power pill nodes if pacman is not nearby
 						if (i == 0) {
-							System.out.println("GHOST 1 CONNECTION ESTABLISHED");
 							if(game.checkPowerPill(PP1)) {
 								actions[0] = followObject(possibleDirs, ghostx, ghosty, PP1.getX(), PP1.getY(), Math.abs(PP1.getY() - ghostx), Math.abs(PP1.getY() - ghosty));
 							}
@@ -172,7 +169,6 @@ public final class StudentController implements DefenderController
 						}
 						//Moves ghost 2 to power pill nodes if pacman is not nearby
 						else if (i == 2) {
-							System.out.println("GHOST 3 CONNECTION ESTABLISHED");
 							if(game.checkPowerPill(PP3)) {
 								actions[2] = followObject(possibleDirs, ghostx, ghosty, PP3.getX(), PP3.getY(), Math.abs(PP3.getY() - ghostx), Math.abs(PP3.getY() - ghosty));
 							}
@@ -192,7 +188,6 @@ public final class StudentController implements DefenderController
 					}
 					//Moves ghost 2 and 4 to pacmans location if he is nearby
 					if (distance(pacx, PP2.getX(), pacy, PP2.getY()) < 25||distance(pacx,PP4.getX(),pacy,PP4.getY())<25) {
-						System.out.println("PACMAN IS COMING *BBBTZZZ* DEFEND RIGHT QUADRANT");
 						if(i==1) {
 							actions[1] = followObject(possibleDirs, ghostx, ghosty, pacx, pacy, pacDisX, pacDisY);
 						}
@@ -203,15 +198,14 @@ public final class StudentController implements DefenderController
 					else {
 						//Moves ghost 2 to power pill nodes if pacman is not nearby
 						if (i == 1) {
-							System.out.println("GHOST 2 CONNECTION ESTABLISHED");
 							if(game.checkPowerPill(PP2)) {
 								actions[1] = followObject(possibleDirs, ghostx, ghosty, PP2.getX(), PP2.getY(), Math.abs(PP2.getY() - ghostx), Math.abs(PP2.getY() - ghosty));
 							}
 							else if(PPnum==2&&game.checkPowerPill(PP4)){
 								actions[1] = followObject(possibleDirs, ghostx, ghosty, PP4.getX(), PP4.getY(), Math.abs(PP4.getY() - ghostx), Math.abs(PP4.getY() - ghosty));
 							}
-							else if(PPnum==1&&game.checkPowerPill(PP1)){
-								actions[1] = followObject(possibleDirs, ghostx, ghosty, PP1.getX(), PP1.getY(), Math.abs(PP1.getY() - ghostx), Math.abs(PP1.getY() - ghosty));
+							else if(PPnum==0&&game.checkPowerPill(PP3)){
+								actions[1] = followObject(possibleDirs, ghostx, ghosty, PP3.getX(), PP3.getY(), Math.abs(PP3.getY() - ghostx), Math.abs(PP3.getY() - ghosty));
 							}
 							else if(PPnum==3&&game.checkPowerPill(PP3)){
 								actions[1] = followObject(possibleDirs, ghostx, ghosty, PP3.getX(), PP3.getY(), Math.abs(PP3.getY() - ghostx), Math.abs(PP3.getY() - ghosty));
@@ -222,9 +216,7 @@ public final class StudentController implements DefenderController
 						}
 						//Moves ghost 4 to power pill nodes if pacman is not nearby
 						else if(i==3){
-							System.out.println("GHOST 4 CONNECTION ESTABLISHED");
 							if(game.checkPowerPill(PP4)) {
-								System.out.println("GHOST 4 MOVING TOWARDS PP4");
 								actions[3] = followObject(possibleDirs, ghostx, ghosty, PP4.getX(), PP4.getY(), Math.abs(PP4.getY() - ghostx), Math.abs(PP4.getY() - ghosty));
 							}
 							else if(PPnum==1&&game.checkPowerPill(PP3)){
