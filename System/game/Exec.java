@@ -19,7 +19,7 @@ import ufl.cs1.controllers.StudentController;
 public class Exec
 {	
 	//Several options are listed - simply remove comments to use the option you want
-	public static void main(String[] args)
+	public static void main(String args[])
 	{
 		Exec exec=new Exec();
 
